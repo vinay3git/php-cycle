@@ -1,0 +1,125 @@
+<?php
+// db.php - Database connection
+$host = 'localhost';
+$user = 'root';
+$password = '';
+$dbname = 'student_db';
+
+$conn = new mysqli($host, $user, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+?>
+
+<!-- registration.php - Registration Page -->
+<?php
+include 'db.php';
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+    $course = $_POST['course'];
+    $age = $_POST['age'];
+
+    // Check for duplicate username
+    $checkQuery = "SELECT COUNT(*) FROM students WHERE username = ?";
+    $stmt = $conn->prepare($checkQuery);
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+    $stmt->bind_result($count);
+    $stmt->fetch();
+
+    if ($count > 0) {
+        echo "Username already exists. Try another.";
+    } else {
+        $insertQuery = "INSERT INTO students (username, password, name, email, course, age) VALUES (?, ?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($insertQuery);
+        $stmt->bind_param('sssssi', $username, $password, $name, $email, $course, $age);
+        if ($stmt->execute()) {
+            echo "Registration successful.";
+        } else {
+            echo "Error: " . $stmt->error;
+        }
+    }
+}
+?>
+
+<form method="POST">
+    <label>Username: <input type="text" name="username" required></label><br>
+    <label>Password: <input type="password" name="password" required></label><br>
+    <label>Name: <input type="text" name="name" required></label><br>
+    <label>Email: <input type="email" name="email" required></label><br>
+    <label>Course: <input type="text" name="course" required></label><br>
+    <label>Age: <input type="number" name="age" required></label><br>
+    <button type="submit">Register</button>
+</form>
+
+<!-- login.php - Login Page -->
+<?php
+include 'db.php';
+session_start();
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    $query = "SELECT username FROM students WHERE username = ? AND password = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param('ss', $username, $password);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 1) {
+        $user = $result->fetch_assoc();
+        $_SESSION['username'] = $user['username'];
+        setcookie("username", $user['username']); // Cookie valid for 1 hour
+        header("Location: dashboard.php");
+        exit;
+    } else {
+        echo "Invalid credentials.";
+    }
+}
+?>
+
+<form method="POST">
+    <label>Username: <input type="text" name="username" required></label><br>
+    <label>Password: <input type="password" name="password" required></label><br>
+    <button type="submit">Login</button>
+</form>
+
+<!-- dashboard.php - Dashboard -->
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: login.php");
+    exit;
+}
+
+include 'db.php';
+$username = $_SESSION['username'];
+$query = "SELECT * FROM students WHERE username = ?";
+$stmt = $conn->prepare($query);
+    $stmt->bind_param('s', $username);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 1) {
+    $user = $result->fetch_assoc();
+    echo "<h1>Welcome, " . $user['name'] . "</h1>";
+    echo "<p>Email: " . $user['email'] . "</p>";
+    echo "<p>Course: " . $user['course'] . "</p>";
+    echo "<p>Age: " . $user['age'] . "</p>";
+    echo '<a href="logout.php">Logout</a>';
+}
+?>
+
+<!-- logout.php - Logout -->
+<?php
+session_start();
+session_unset();
+session_destroy();
+setcookie("username", "", time() - 3600); // Expire cookie
+header("Location: login.php");
+?>
