@@ -1,0 +1,84 @@
+exp1.html
+<html>
+<head>
+        <title> student info</title>
+</head>
+<body>
+        <h1>student info</h1>
+        <form action="exp1.php" method="POST">
+                <label for="name">Name: </label>
+                <input type="text" id="name" name="name" required><br><br>
+                <label for="age">Age: </label>
+                <input type="number" id="age" name="age" required><br><br>
+                <label for="grade">Grade: </label>
+                <input type="text" id="grade" name="grade" required><br><br>
+                <input type="submit" value="submit">              
+</body>
+</html>
+
+exp1.php
+<?php
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db = "first";
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $name = $_POST['name'];
+    $age = $_POST['age'];
+    $grade = $_POST['grade'];
+
+    $con = mysqli_connect($host, $user, $pass, $db);
+
+    if (!$con) {
+        die("Connection failed: " . mysqli_connect_error());
+    }
+    echo "Connected successfully.<br>";
+
+    $query = "INSERT INTO students (name, age, grade) VALUES ('$name', $age, '$grade')";
+    if (mysqli_query($con, $query)) {
+        echo "Data inserted successfully.<br>";
+    } else {
+        echo "Error inserting data: " . mysqli_error($con) . "<br>";
+    }
+
+    mysqli_close($con);
+}
+?>
+<html>
+<head>
+    <title>Student Info</title>
+</head>
+<body>
+    <h1>Student Info</h1>
+    <table border='1'>
+        <tr>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Grade</th>
+        </tr>
+        <?php
+        $con = mysqli_connect($host, $user, $pass, $db);
+        if (!$con) {
+            die("Connection failed: " . mysqli_connect_error());
+        }
+
+        $query = "SELECT * FROM students";
+        $res = mysqli_query($con, $query);
+
+        if ($res) {
+            while ($row = mysqli_fetch_assoc($res)) {
+                echo "<tr>";
+                echo "<td>" . $row['name'] . "</td>";
+                echo "<td>" . $row['age'] . "</td>";
+                echo "<td>" . $row['grade'] . "</td>";
+                echo "</tr>";
+            }
+        } else {
+            echo "<tr><td colspan='3'>Error retrieving data: " . mysqli_error($con) . "</td></tr>";
+        }
+        mysqli_close($con);
+        ?>
+    </table>
+</body>
+</html>
